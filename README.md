@@ -68,6 +68,7 @@ fig.show()
 summary = data_quality.groupby("Quality").agg({"Symbol":"count","ROE":["mean","max","min"],"P/E":["mean","max","min"],"P/BV":["mean","max","min"],"Dividend":["mean","max","min"]}).reset_index()
 print(summary)
 
+# Stock Heatmap
 
 ![alt text](<Screenshot 2025-10-07 135725.png>)
 
