@@ -1,55 +1,112 @@
 # Divining-Based-on-Quality
 # 📊 Stock Analysis & Divining Based on Quality
 
-This project is a Thai stock analysis system that retrieves Candlestick data from the Settrade API and stores it in Cassandra. It also visualizes a Divining Based on Quality Treemap with tooltips and a legend.
+This system analyzes Thai stocks by fetching Candlestick data from the Settrade API and storing it in Cassandra. It evaluates stock quality and visualizes a Treemap for Divining Based on Quality.
 
-## Features
-- Connects to Cassandra to store Candlestick data
-- Fetches stock data from Settrade API (Sandbox/Live)
-- Analyzes stock quality based on ROE, P/E, P/BV, Dividend
-- Creates a Treemap sized by ROE or % Change, colored by Quality
-- Tooltip shows ROE, P/E, P/BV, Dividend, Change
-- Legend and annotation explain stock quality levels clearly
-- Summarizes stock data by quality level (Mean, Max, Min)
+🔹 Features
 
-## Installation
-1. Clone the repository:
-git clone https://github.com/<username>/stock_analysis.git
-cd stock_analysis
+Connect to Cassandra to store Candlestick data
 
-2. Create a virtual environment:
-conda create -n stock_env python=3.10
-conda activate stock_env
+Fetch stock data from Settrade API (Sandbox/Live)
 
-3. Install dependencies:
-pip install -r requirements.txt
+Analyze stock quality using ROE, P/E, P/BV, Dividend
 
-## Usage
-- Edit stocth_names.xlsx to add stock symbols
-- Update Settrade API credentials in the code
-- Run: python stock_analysis.py
-- View Treemap and summary table
+Generate Treemap with Legend and Annotation
 
-## Treemap Explanation
-- Size: ROE or % Change
-- Color: Quality (Green=Excellent, Lime=Good, Gold=Fair, Orange=Poor, Red=Unacceptable)
-- Tooltip: ROE, P/E, P/BV, Dividend, Change
+Summarize stocks by quality level
 
-## Cassandra Table Schema
-| Column | Type | Description |
-|--------|------|-------------|
-| symbol | text | Stock symbol |
-| time | timestamp | Candlestick timestamp |
-| open_price | float | Opening price |
-| high_price | float | Highest price |
-| low_price | float | Lowest price |
-| close_price | float | Closing price |
-| volume | bigint | Traded volume |
-| value | float | Traded value |
+🛠️ Installation
+pip install pandas numpy cassandra-driver plotly openpyxl settrade-v2
 
-## License
-MIT License © 2025
-"""
-with open("README.md", "w", encoding="utf-8") as f:
-    f.write(readme_content)
+
+Cassandra must be installed and accessible at 127.0.0.1.
+
+⚙️ Usage (Summary)
+# Connect to Cassandra
+cluster = Cluster(['127.0.0.1'])
+session = cluster.connect()
+session.set_keyspace('data_stock')
+
+# Connect to Settrade API
+investor = Investor(app_id="APP_ID", app_secret="APP_SECRET", broker_id="SANDBOX", app_code="SANDBOX")
+market = investor.MarketData()
+
+# Load stock symbols
+symbols = pd.read_excel("get_stock_name/stocth_names.xlsx")['หลักทรัพย์'].dropna().tolist()
+
+# Fetch and store Candlestick data
+for s in symbols:
+    res = market.get_candlestick(symbol=s, interval="1d", limit=100, normalized=True)["data"]
+    for i in range(len(res["time"])):
+        session.execute("""INSERT INTO candlestick_data (...) VALUES (...)""", (...))
+
+# Analyze stock quality
+data_quality = pd.DataFrame({
+    "Symbol": symbols,
+    "P/E": np.random.uniform(5,40,len(symbols)),
+    "P/BV": np.random.uniform(0.5,5,len(symbols)),
+    "ROE": np.random.uniform(2,30,len(symbols)),
+    "Dividend": np.random.uniform(0,8,len(symbols))
+})
+
+def classify_quality(row):
+    if row["ROE"]>20 and row["P/E"]<15 and row["P/BV"]<2: return "Excellent"
+    elif row["ROE"]>15 and row["P/E"]<20: return "Good"
+    elif row["ROE"]>10: return "Fair"
+    elif row["ROE"]>5: return "Poor"
+    else: return "Unacceptable"
+
+data_quality["Quality"] = data_quality.apply(classify_quality, axis=1)
+
+# Create Treemap
+fig = px.treemap(data_quality, path=["Symbol"], values="ROE", color="Quality",
+                 color_discrete_map={"Excellent":"green","Good":"limegreen","Fair":"gold","Poor":"orange","Unacceptable":"red"},
+                 custom_data=["ROE","P/E","P/BV","Dividend"])
+fig.show()
+
+# Summarize stocks by quality
+summary = data_quality.groupby("Quality").agg({"Symbol":"count","ROE":["mean","max","min"],"P/E":["mean","max","min"],"P/BV":["mean","max","min"],"Dividend":["mean","max","min"]}).reset_index()
+print(summary)
+
+
+![alt text](<Screenshot 2025-10-07 135725.png>)
+
+📊 Color Legend (Treemap)
+
+🟢 Green: Excellent
+
+🍏 Lime: Good
+
+🟡 Gold: Fair
+
+🟠 Orange: Poor
+
+🔴 Red: Unacceptable
+
+💡 Business Model Canvas
+Key Partners	Key Activities	Key Resources
+- Settrade API (stock data)
+- Cassandra (Database)
+- Python ecosystem (pandas, plotly, numpy)	- Fetch Candlestick data from Settrade API
+- Analyze stock quality
+- Create Visualization (Treemap, Summary)	- Development team
+- Server / Cloud for Cassandra
+- Settrade API license
+Value Propositions	Customer Relationships	Channels
+- Analyze Thai stocks by quality
+- Help investors choose good stocks
+- Easy-to-read visual dashboard
+- Statistical stock summaries	- Online Dashboard / Web Application
+- Report / PDF summaries
+- Notifications / Alerts	- Web Application
+- Excel / CSV Export
+- GitHub (for Open Source example)
+Customer Segments	Cost Structure	Revenue Streams
+- Retail investors in Thailand
+- Fund managers / Financial analysts
+- Students or finance learners	- Server / Database Costs (Cassandra)
+- API Subscription Fees (Settrade)
+- Development & Maintenance	- Subscription for Dashboard / Analytics
+- Consulting / Custom Reports
+- Data Access Fee
 
